@@ -1,12 +1,14 @@
 import re
 
+# http://eu4parser.readthedocs.io/en/latest/format/
+
 
 class Token(object):
     value = None
     pattern = None
     length = None
 
-    string_format = "{0.name} length {0.length}: {0.value}"
+    string_format = "{0.name}: {0.value}"
 
     def __init__(self, value, length):
         self.value = value
@@ -61,16 +63,21 @@ class Equals(Token):
 
 
 class Integer(Token):
-    pattern = b'(\x0c\x00|\x14\x00)....'
+    pattern = b'(\x0c\x00|\x14\x00)'
 
-    def __init__(self, value, length):
-        super(Integer, self).__init__(value, length)
-        self.value = self._to_int(value[2:])
+    @classmethod
+    def match(cls, data):
+        ret = re.match(cls.pattern, data)
+
+        if ret:
+            value = cls._to_int(data[2:6])
+            length = 6
+            rest = data[6:]
+            return cls(value, length), rest
 
 
 class Boolean(Token):
     pattern = b'\x0e\x00.'
-    string_format = "{0.name}: {0.value}"
 
     def __init__(self, value, length):
         super(Boolean, self).__init__(value, length)
@@ -87,7 +94,6 @@ class FixedBoolean(Boolean):
 
 class Identifier(Token):
     pattern = b'..'
-    string_format = "{0.name}: {0.value}"
 
     def __init__(self, value, length):
         super(Identifier, self).__init__(value, length)
@@ -109,3 +115,24 @@ class String(Token):
             return cls(string, length), rest
 
 
+class Float(Integer):
+    pattern = b'\x0d\x00'
+
+    def __init__(self, value, length):
+        super(Float, self).__init__(value, length)
+        self.value /= 1000
+
+
+class Q16Float(Token):
+    pattern = b'\x67\x01'
+
+    @classmethod
+    def match(cls, data):
+        ret = re.match(cls.pattern, data)
+
+        if ret:
+            length = 10
+            rest = data[length:]
+            value = data[2:6]  # final four have an unknown meaning
+            value = cls._to_int(value) * (2 ** -16)
+            return cls(value, length), rest

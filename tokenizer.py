@@ -1,6 +1,6 @@
 from tokens import *
 
-TOKENS = (MagicNumber, OpenGroup, CloseGroup, Equals, Integer, Boolean, String, Identifier)
+TOKENS = (MagicNumber, OpenGroup, CloseGroup, Equals, Integer, Boolean, String, Float, Q16Float, Identifier)
 
 
 def tokenizer(data):
